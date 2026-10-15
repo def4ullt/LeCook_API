@@ -26,7 +26,7 @@ public class CategoryService {
 
     public Category getById(Integer id) {
         return repository.findById(id)
-                .orElseThrow(() -> new RuntimeException("Category not found"));
+                .orElseThrow(() -> new com.lecook.backend.exception.ResourceNotFoundException("Category not found"));
     }
 
     public void delete(Integer id) {
@@ -36,7 +36,7 @@ public class CategoryService {
     public Category update(Integer id, Category category) {
 
         Category existing = repository.findById(id)
-                .orElseThrow(() -> new RuntimeException("Category not found"));
+                .orElseThrow(() -> new com.lecook.backend.exception.ResourceNotFoundException("Category not found"));
 
         existing.setName(category.getName());
 

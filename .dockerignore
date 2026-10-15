@@ -1,0 +1,14 @@
+.git
+.gradle
+build
+.idea
+.vscode
+.env
+.env.*
+local.properties
+local-db.properties
+.verification
+*.pem
+*.key
+*.jks
+*.keystore

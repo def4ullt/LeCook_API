@@ -1,0 +1,29 @@
+services:
+  - type: web
+    name: lecook-api
+    runtime: docker
+    plan: free
+    region: ohio
+    branch: master
+    dockerfilePath: ./Dockerfile
+    dockerContext: .
+    healthCheckPath: /api/ping
+    envVars:
+      - key: SPRING_PROFILES_ACTIVE
+        value: render
+      - key: DATABASE_URL
+        sync: false
+      - key: DATABASE_URL_UNPOOLED
+        sync: false
+      - key: LECOOK_ADMIN_TOKEN
+        generateValue: true
+      - key: AWS_ACCESS_KEY_ID
+        sync: false
+      - key: AWS_SECRET_ACCESS_KEY
+        sync: false
+      - key: AWS_ENDPOINT_URL_S3
+        sync: false
+      - key: AWS_REGION
+        value: us-east-2
+      - key: LECOOK_STORAGE_BUCKET
+        value: lecook-recipe-images

@@ -31,7 +31,7 @@ public class IngredientService {
 
     public Ingredient getById(Integer id) {
         return repository.findById(id)
-                .orElseThrow(() -> new RuntimeException("Ingredient not found"));
+                .orElseThrow(() -> new com.lecook.backend.exception.ResourceNotFoundException("Ingredient not found"));
     }
 
     public void delete(Integer id) {
@@ -41,7 +41,7 @@ public class IngredientService {
     public Ingredient update(Integer id, Ingredient ingredient) {
 
         Ingredient existing = repository.findById(id)
-                .orElseThrow(() -> new RuntimeException("Ingredient not found"));
+                .orElseThrow(() -> new com.lecook.backend.exception.ResourceNotFoundException("Ingredient not found"));
 
         existing.setName(ingredient.getName());
 

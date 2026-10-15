@@ -25,4 +25,6 @@ public class RecipeIngredient implements Serializable {
     private Ingredient ingredient;
 
     private BigDecimal quantity;
+    @Column(nullable = false, length = 16)
+    private String unit = "";
 }

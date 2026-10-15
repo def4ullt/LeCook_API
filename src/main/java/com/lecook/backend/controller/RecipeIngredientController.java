@@ -1,48 +1,27 @@
 package com.lecook.backend.controller;
 
-import com.lecook.backend.entity.Recipe;
-import com.lecook.backend.entity.RecipeIngredient;
-import com.lecook.backend.entity.RecipeIngredientId;
+import com.lecook.backend.dto.*;
 import com.lecook.backend.service.RecipeIngredientService;
+import jakarta.validation.Valid;
+import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.*;
-
-import java.util.List;
-import java.util.UUID;
+import java.net.URI;
+import java.util.*;
 
 @RestController
-@RequestMapping("/api/recipe_ingredient")
+@RequestMapping("/api/recipes/{recipeId}/ingredients")
 public class RecipeIngredientController {
-
     private final RecipeIngredientService service;
-
-    public RecipeIngredientController(RecipeIngredientService service) {
-        this.service = service;
+    public RecipeIngredientController(RecipeIngredientService service) { this.service = service; }
+    @GetMapping public List<RecipeIngredientResponse> list(@PathVariable UUID recipeId) { return service.list(recipeId); }
+    @PostMapping public ResponseEntity<RecipeIngredientResponse> create(@PathVariable UUID recipeId, @Valid @RequestBody RecipeIngredientRequest request) {
+        var result = service.create(recipeId, request);
+        return ResponseEntity.created(URI.create("/api/recipes/" + recipeId + "/ingredients/" + result.ingredientId())).body(result);
     }
-
-    @GetMapping
-    public List<RecipeIngredient> getAll() {
-        return service.getAll();
+    @PutMapping("/{ingredientId}") public RecipeIngredientResponse update(@PathVariable UUID recipeId, @PathVariable Integer ingredientId, @Valid @RequestBody IngredientQuantityRequest request) {
+        return service.update(recipeId, ingredientId, request.quantity());
     }
-
-
-    @PostMapping
-    public RecipeIngredient create(@RequestBody RecipeIngredient recipeIngredient) {
-        return service.create(recipeIngredient);
-    }
-
-    @GetMapping("/{id}")
-    public RecipeIngredient get(@PathVariable RecipeIngredientId id) {
-        return service.getById(id);
-    }
-
-
-    @PutMapping("/{id}")
-    public RecipeIngredient update(@PathVariable RecipeIngredientId id, @RequestBody RecipeIngredient recipeIngredient) {
-        return service.update(id, recipeIngredient);
-    }
-
-    @DeleteMapping("/{id}")
-    public void delete(@PathVariable RecipeIngredientId id) {
-        service.delete(id);
+    @DeleteMapping("/{ingredientId}") public ResponseEntity<Void> delete(@PathVariable UUID recipeId, @PathVariable Integer ingredientId) {
+        service.delete(recipeId, ingredientId); return ResponseEntity.noContent().build();
     }
 }

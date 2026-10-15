@@ -1,4 +1,15 @@
 HELP.md
+.env
+.env.*
+!.env.example
+local.properties
+local-db.properties
+.neon
+.verification/
+*.pem
+*.key
+*.jks
+*.keystore
 .gradle
 build/
 !gradle/wrapper/gradle-wrapper.jar

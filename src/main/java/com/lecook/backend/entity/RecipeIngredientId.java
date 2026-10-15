@@ -8,6 +8,10 @@ import java.util.UUID;
 
 @Embeddable
 public class RecipeIngredientId implements Serializable {
+    public RecipeIngredientId() {}
+    public RecipeIngredientId(UUID recipeId, Integer ingredientId) {
+        this.recipeId = recipeId; this.ingredientId = ingredientId;
+    }
     private UUID recipeId;
 
     private Integer ingredientId;
