@@ -31,5 +31,8 @@ class CatalogWriteFilterTest {
         var response = new MockHttpServletResponse();
         filter.doFilter(new MockHttpServletRequest("POST", "/api/admin/recipe-images"), response, new MockFilterChain());
         assertEquals(503, response.getStatus());
+        response = new MockHttpServletResponse();
+        filter.doFilter(new MockHttpServletRequest("GET", "/api/admin/assistant/status"), response, new MockFilterChain());
+        assertEquals(503, response.getStatus());
     }
 }
