@@ -11,6 +11,27 @@ import static org.mockito.Mockito.*;
 import static org.mockito.ArgumentMatchers.*;
 
 class CookingAssistantTest {
+    @Test void unavailablePreferredModelFallsBackToAnAdvertisedFlashModel() throws Exception {
+        var http=mock(HttpClient.class);
+        when(http.send(any(HttpRequest.class),org.mockito.ArgumentMatchers.<HttpResponse.BodyHandler<InputStream>>any())).thenAnswer(invocation->{
+            HttpRequest request=invocation.getArgument(0);
+            @SuppressWarnings("unchecked") HttpResponse<InputStream> response=mock(HttpResponse.class);
+            String body;
+            if(request.method().equals("GET")) {
+                when(response.statusCode()).thenReturn(200);
+                body="{\"models\":[{\"name\":\"models/gemini-3.1-flash-lite\",\"supportedGenerationMethods\":[\"generateContent\"]}]}";
+            } else if(request.uri().getPath().contains("gemini-3.8-flash")) {
+                when(response.statusCode()).thenReturn(503);body="{\"error\":{\"status\":\"UNAVAILABLE\"}}";
+            } else {
+                assertTrue(request.uri().getPath().contains("gemini-3.1-flash-lite"));
+                when(response.statusCode()).thenReturn(200);body="{\"candidates\":[{\"content\":{\"parts\":[{\"text\":\"Soup\"}]}}]}";
+            }
+            when(response.body()).thenReturn(new ByteArrayInputStream(body.getBytes()));return response;
+        });
+        var assistant=new CookingAssistant(new MockEnvironment().withProperty("GEMINI_API_KEY","unit-test-secret").withProperty("GEMINI_MODEL","gemini-3.8-flash"),new ObjectMapper(),http);
+        assertEquals("Soup",assistant.answer("Dinner?", ""));
+        assertEquals("gemini-3.1-flash-lite",assistant.diagnostics().get("model"));
+    }
     @Test void discoversAnAvailableModelInsteadOfDependingOnAnAlias() throws Exception {
         var http=mock(HttpClient.class);
         @SuppressWarnings("unchecked") HttpResponse<InputStream> listing=mock(HttpResponse.class);

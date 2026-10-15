@@ -22,8 +22,10 @@ public class CookingAssistant {
     private volatile int providerStatus;
     private volatile String providerCode = "not_called";
     private volatile String selectedModel = "";
+    private volatile List<String> listedModels = List.of();
+    private volatile boolean modelsLoaded;
     public Map<String, Object> diagnostics() {
-        return Map.of("available",available(),"httpStatus",providerStatus,"providerCode",providerCode,"model",selectedModel);
+        return Map.of("available",available(),"httpStatus",providerStatus,"providerCode",providerCode,"model",selectedModel,"availableModels",listedModels);
     }
     @org.springframework.beans.factory.annotation.Autowired
     public CookingAssistant(Environment env, ObjectMapper json) {
@@ -64,13 +66,9 @@ public class CookingAssistant {
                     """))),
                 "contents", List.of(Map.of("role", "user", "parts", List.of(Map.of("text", "Контекст:\n" + context + "\nЗапитання:\n" + message)))),
                 "generationConfig", Map.of("maxOutputTokens", 1800, "temperature", 0.6));
-            var request = HttpRequest.newBuilder(URI.create("https://generativelanguage.googleapis.com/v1beta/models/" + model + ":generateContent"))
-                .timeout(Duration.ofSeconds(55)).header("Content-Type", "application/json")
-                .header("x-goog-api-key", env.getRequiredProperty("GEMINI_API_KEY"))
-                .POST(HttpRequest.BodyPublishers.ofString(json.writeValueAsString(body))).build();
-            var response = http.send(request, HttpResponse.BodyHandlers.ofInputStream());
-            byte[] bytes;
-            try (var input = response.body()) { bytes = input.readNBytes(512 * 1024 + 1); }
+            var response = generate(model, json.writeValueAsString(body));
+            byte[] bytes = response.bytes();
+            selectedModel = response.model();
             providerStatus = response.statusCode();
             providerCode = response.statusCode() == 200 ? "OK" : "provider_error";
             if (response.statusCode() != 200 && bytes.length <= 512 * 1024) {
@@ -109,25 +107,52 @@ public class CookingAssistant {
         } finally { concurrent.release(); }
     }
 
+    private record ProviderReply(int statusCode, byte[] bytes, String model) {}
+    private ProviderReply generate(String preferred, String body) throws Exception {
+        var candidates = new ArrayList<String>(); candidates.add(preferred);
+        for(int attempt=0; attempt<3 && attempt<candidates.size(); attempt++) {
+            String candidate=candidates.get(attempt);
+            var request=HttpRequest.newBuilder(URI.create("https://generativelanguage.googleapis.com/v1beta/models/"+candidate+":generateContent"))
+                .timeout(Duration.ofSeconds(35)).header("Content-Type","application/json")
+                .header("x-goog-api-key",env.getRequiredProperty("GEMINI_API_KEY"))
+                .POST(HttpRequest.BodyPublishers.ofString(body)).build();
+            var response=http.send(request,HttpResponse.BodyHandlers.ofInputStream());
+            byte[] bytes;
+            try(var input=response.body()) { bytes=input.readNBytes(512*1024+1); }
+            if((response.statusCode()==404 || response.statusCode()==503) && attempt<2) {
+                for(String model:discoverModels()) if(!candidates.contains(model)) candidates.add(model);
+                if(attempt+1<candidates.size()) continue;
+            }
+            return new ProviderReply(response.statusCode(),bytes,candidate);
+        }
+        throw new IllegalStateException("No Gemini model available");
+    }
     private String model() throws Exception {
-        String configured = env.getProperty("GEMINI_MODEL", "");
-        if (!configured.isBlank()) return configured;
-        if (!selectedModel.isBlank()) return selectedModel;
-        var request = HttpRequest.newBuilder(URI.create("https://generativelanguage.googleapis.com/v1beta/models?pageSize=1000"))
-            .timeout(Duration.ofSeconds(20)).header("x-goog-api-key",env.getRequiredProperty("GEMINI_API_KEY")).GET().build();
-        var response = http.send(request,HttpResponse.BodyHandlers.ofInputStream());
+        String configured=env.getProperty("GEMINI_MODEL", "");
+        if(!configured.isBlank()) return configured;
+        if(!selectedModel.isBlank()) return selectedModel;
+        return discoverModels().stream().findFirst().orElse("gemini-flash-latest");
+    }
+    private synchronized List<String> discoverModels() throws Exception {
+        if(modelsLoaded) return listedModels;
+        var request=HttpRequest.newBuilder(URI.create("https://generativelanguage.googleapis.com/v1beta/models?pageSize=1000"))
+            .timeout(Duration.ofSeconds(15)).header("x-goog-api-key",env.getRequiredProperty("GEMINI_API_KEY")).GET().build();
+        var response=http.send(request,HttpResponse.BodyHandlers.ofInputStream());
         byte[] bytes;
         try(var input=response.body()) { bytes=input.readNBytes(512*1024+1); }
-        if(response.statusCode()!=200 || bytes.length>512*1024) return "gemini-flash-latest";
-        var models = new HashSet<String>();
+        if(response.statusCode()!=200 || bytes.length>512*1024) return List.of();
+        var models=new HashSet<String>();
         for(var item:json.readTree(bytes).path("models")) {
             boolean generate=false;
             for(var method:item.path("supportedGenerationMethods")) if(method.asText().equals("generateContent")) generate=true;
-            if(generate) models.add(item.path("name").asText("").replaceFirst("^models/", ""));
+            String name=item.path("name").asText("").replaceFirst("^models/", "");
+            if(generate && name.matches("gemini-[a-z0-9.-]*flash[a-z0-9.-]*") && !name.matches(".*(image|tts|live|preview|exp).*")) models.add(name);
         }
-        for(String candidate:List.of("gemini-2.5-flash","gemini-3.1-flash-lite","gemini-3.8-flash","gemini-3.5-flash","gemini-flash-latest"))
-            if(models.contains(candidate)) return candidate;
-        return models.stream().filter(m->m.matches("gemini-[0-9.]+-flash") && !m.contains("image"))
-            .sorted(Comparator.reverseOrder()).findFirst().orElse("gemini-flash-latest");
+        var ordered=new ArrayList<String>();
+        for(String candidate:List.of("gemini-3.8-flash","gemini-3.1-flash-lite","gemini-3.5-flash","gemini-3.7-flash","gemini-3.6-flash","gemini-2.5-flash","gemini-2.5-flash-lite","gemini-flash-latest"))
+            if(models.remove(candidate)) ordered.add(candidate);
+        models.stream().sorted(Comparator.reverseOrder()).forEach(ordered::add);
+        listedModels=List.copyOf(ordered);modelsLoaded=true;
+        return listedModels;
     }
 }
