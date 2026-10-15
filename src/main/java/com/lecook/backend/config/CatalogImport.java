@@ -44,7 +44,7 @@ public class CatalogImport implements ApplicationRunner {
             for (String step : row[6].split("\\|", -1))
                 if (step.isBlank()) throw new IllegalStateException("Empty step: " + row[0]);
         }
-        if (rows.size() != 60) throw new IllegalStateException("Expected exactly 60 catalog recipes");
+        if (rows.size() != 90) throw new IllegalStateException("Expected exactly 90 catalog recipes");
         transaction.executeWithoutResult(status -> {
             db.execute("SELECT pg_advisory_xact_lock(768213409521)");
             var categories = namedValues("categories");

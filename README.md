@@ -1,7 +1,7 @@
 # LeCook API
 
 Java 17 / Spring Boot API for the offline Android recipe book. PostgreSQL and
-S3-compatible object storage are provided by Neon. The catalog includes 60
+S3-compatible object storage are provided by Neon. The catalog includes 90
 Ukrainian recipes with shared ingredients, quantities, units and separate steps.
 
 ## Deploy on Render
@@ -66,3 +66,17 @@ Secrets and local configurations are excluded from Git and the Docker build.
 The first catalog import is explicit: start the JAR with
 `--lecook.catalog.import=true --spring.main.web-application-type=none`.
 Stable recipe IDs make repeated imports skip existing catalog recipes.
+
+## Cooking assistant and photographs
+
+See [ASSISTANT.md](ASSISTANT.md) for the Gemini endpoint, configuration and
+prototype limits. Add GEMINI_API_KEY to Render Environment; keep it out of Android.
+
+The catalog now has 90 recipes, 110 shared ingredients, 621 ingredient links and
+270 steps. Image attribution and original Commons URLs are preserved in
+`src/main/resources/catalog/photos.tsv`. Images live in the existing Neon bucket;
+normal server startup never uploads or imports catalog data.
+
+Sync responses include imageUrl, imageCredit and publishedAt. Existing Android
+clients can ignore the additional fields. The Android 1.5 client upgrades its
+local database without clearing recipes or favorites.

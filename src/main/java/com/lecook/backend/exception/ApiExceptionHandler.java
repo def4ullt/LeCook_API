@@ -12,6 +12,10 @@ import java.util.*;
 
 @RestControllerAdvice
 public class ApiExceptionHandler {
+    @ExceptionHandler(org.springframework.web.server.ResponseStatusException.class)
+    ResponseEntity<ApiError> serviceError(org.springframework.web.server.ResponseStatusException error) {
+        return ResponseEntity.status(error.getStatusCode()).body(new ApiError("service_unavailable", error.getReason(), Map.of()));
+    }
     public record ApiError(String code, String message, Map<String, String> fields) {}
 
     @ExceptionHandler(ResourceNotFoundException.class)

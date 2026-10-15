@@ -25,7 +25,7 @@ class CatalogCloudTest {
         assertEquals(200, response.statusCode());
         var body = mapper.readTree(response.body());
         assertFalse(body.get("hasMore").asBoolean());
-        assertEquals(60, body.get("recipes").size());
+        assertEquals(90, body.get("recipes").size());
         var ids = new ArrayList<String>();
         for (var recipe : body.get("recipes")) {
             ids.add(recipe.get("id").asText());
@@ -46,6 +46,6 @@ class CatalogCloudTest {
             .header("Content-Type", "application/json").POST(HttpRequest.BodyPublishers.ofString(mapper.writeValueAsString(Map.of("knownIds",ids)))).build(), HttpResponse.BodyHandlers.ofString());
         assertEquals(200, repeated.statusCode());
         assertEquals(0, mapper.readTree(repeated.body()).get("recipes").size());
-        System.out.println("CATALOG HTTP VERIFIED: 60 recipes, structured ingredients, 180 steps, repeated sync=0");
+        System.out.println("CATALOG HTTP VERIFIED: 90 recipes, structured ingredients, 270 steps, repeated sync=0");
     }
 }

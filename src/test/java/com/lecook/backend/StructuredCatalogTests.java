@@ -25,15 +25,15 @@ class StructuredCatalogTests extends IsolatedDatabase {
     @Test void catalogImportIsIdempotentAndSyncCarriesRealComposition() throws Exception {
         var importer = new CatalogImport(db, manager);
         importer.run(new DefaultApplicationArguments());
-        assertEquals(60, db.queryForObject("SELECT count(*) FROM recipes", Integer.class));
+        assertEquals(90, db.queryForObject("SELECT count(*) FROM recipes", Integer.class));
         int links = db.queryForObject("SELECT count(*) FROM recipe_ingredients", Integer.class);
         importer.run(new DefaultApplicationArguments());
-        assertEquals(60, db.queryForObject("SELECT count(*) FROM recipes", Integer.class));
+        assertEquals(90, db.queryForObject("SELECT count(*) FROM recipes", Integer.class));
         assertEquals(links, db.queryForObject("SELECT count(*) FROM recipe_ingredients", Integer.class));
-        assertEquals(180, db.queryForObject("SELECT count(*) FROM recipe_steps", Integer.class));
+        assertEquals(270, db.queryForObject("SELECT count(*) FROM recipe_steps", Integer.class));
         assertTrue(db.queryForObject("SELECT EXISTS(SELECT 1 FROM recipe_ingredients GROUP BY ingredient_id HAVING count(DISTINCT recipe_id)>1)", Boolean.class));
         var page = sync.page(new SyncRequest(List.of()));
-        assertEquals(60, page.recipes().size());
+        assertEquals(90, page.recipes().size());
         assertFalse(page.hasMore());
         for (var recipe : page.recipes()) {
             assertNull(recipe.calories());

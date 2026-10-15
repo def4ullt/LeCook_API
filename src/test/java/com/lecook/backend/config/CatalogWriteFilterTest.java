@@ -15,6 +15,9 @@ class CatalogWriteFilterTest {
         filter.doFilter(new MockHttpServletRequest("POST", "/api/recipes/sync/page"), response, new MockFilterChain());
         assertEquals(200, response.getStatus());
         response = new MockHttpServletResponse();
+        filter.doFilter(new MockHttpServletRequest("POST", "/api/assistant"), response, new MockFilterChain());
+        assertEquals(200, response.getStatus());
+        response = new MockHttpServletResponse();
         filter.doFilter(new MockHttpServletRequest("DELETE", "/api/recipes/id"), response, new MockFilterChain());
         assertEquals(401, response.getStatus());
         var request = new MockHttpServletRequest("POST", "/api/recipes");
