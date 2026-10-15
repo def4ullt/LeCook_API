@@ -21,6 +21,9 @@ public class Recipe {
 
     private String image_url;
     private Integer calories;
+    private Double protein;
+    private Double fat;
+    private Double carbs;
 
     @ManyToOne
     @JoinColumn(name = "category_id")

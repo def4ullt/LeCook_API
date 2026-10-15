@@ -18,6 +18,8 @@ public class CatalogWriteFilter extends OncePerRequestFilter {
 
     @Override protected void doFilterInternal(HttpServletRequest request, HttpServletResponse response, FilterChain chain) throws ServletException, IOException {
         String path = request.getRequestURI().substring(request.getContextPath().length());
+        // These controllers verify a managed user session and enforce ownership themselves.
+        if(path.startsWith("/api/account/")) { chain.doFilter(request,response); return; }
         boolean safe = Set.of("GET", "HEAD", "OPTIONS").contains(request.getMethod()) ||
             (request.getMethod().equals("POST") && Set.of("/api/recipes/sync", "/api/recipes/sync/page", "/api/assistant").contains(path));
         boolean protect = path.startsWith("/api/admin/") || (environment.getProperty("lecook.cloud", Boolean.class, false) && path.startsWith("/api/") && !safe);
